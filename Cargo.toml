@@ -1,0 +1,12 @@
+[package]
+name = "nebula"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+crossterm = "0.27"
+ratatui = "0.26"
+crossbeam-channel = "0.5"
+libc = "0.2"
+dotenvy = "0.15"
