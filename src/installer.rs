@@ -852,6 +852,8 @@ fn validate_offline_packages(packages: &[&str]) -> Result<()> {
 fn validate_offline_base_package() -> Result<()> {
     let sync_status = Command::new("pacman")
         .args(["--config", OFFLINE_PACMAN_CONF_PATH, "-Sy", "--noconfirm"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .status()
         .context("sync offline repo database")?;
     if !sync_status.success() {
