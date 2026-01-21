@@ -1494,6 +1494,7 @@ fn main() -> Result<()> {
     // Installation progress screen
     let mut last_tick = Instant::now();
     let mut reboot_requested = false;
+    let mut shutdown_requested = false;
     loop {
         terminal.draw(|f| draw_ui(f.size(), f, &app))?;
 
@@ -1507,10 +1508,16 @@ fn main() -> Result<()> {
                         {
                             break
                         }
-                        KeyCode::Char('b') | KeyCode::Char('B')
+                        KeyCode::Char('r') | KeyCode::Char('R')
                             if app.done && app.err.is_none() =>
                         {
                             reboot_requested = true;
+                            break;
+                        }
+                        KeyCode::Char('s') | KeyCode::Char('S')
+                            if app.done && app.err.is_none() =>
+                        {
+                            shutdown_requested = true;
                             break;
                         }
                         _ => {}
@@ -1538,6 +1545,11 @@ fn main() -> Result<()> {
             .arg("reboot")
             .status()
             .context("reboot system")?;
+    } else if shutdown_requested {
+        Command::new("systemctl")
+            .arg("poweroff")
+            .status()
+            .context("power off system")?;
     }
     Ok(())
 }

@@ -127,12 +127,12 @@ pub fn draw_ui(area: Rect, f: &mut Frame<'_>, app: &App) {
         } else {
             Line::from(vec![
                 Span::styled(
-                    "Installation complete.",
+                    "Installation complete!",
                     Style::default().fg(Color::LightGreen),
                 ),
                 Span::raw(" "),
                 Span::styled(
-                    "Press B to reboot.",
+                    "Press R to reboot or S to shut down",
                     Style::default()
                         .fg(Color::Magenta)
                         .add_modifier(Modifier::BOLD),
