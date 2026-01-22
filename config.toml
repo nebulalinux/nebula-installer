@@ -1,4 +1,8 @@
+
+# Packages
 [packages]
+
+# Required Packages
 required = [
   "mesa",
   "dunst",
@@ -52,6 +56,7 @@ required = [
   "jq",
 ]
 
+# Hyprland Packages
 hyprland = [
   "hyprland",
   "hyprlock",
@@ -65,3 +70,78 @@ hyprland = [
   "nebula-hypr",
   "xdg-desktop-portal-hyprland",
 ]
+
+# Compositors
+[selections]
+compositors = ["Hyprland"]
+
+# Web Browsers
+[[selections.browsers]]
+label = "Firefox"
+pacman = ["firefox", "firefox-ublock-origin"]
+
+[[selections.browsers]]
+label = "Chromium"
+pacman = ["chromium"]
+
+[[selections.browsers]]
+label = "Ungoogled Chromium"
+yay = ["ungoogled-chromium-bin"]
+
+[[selections.browsers]]
+label = "Helium"
+yay = ["helium-browser-bin"]
+
+[[selections.browsers]]
+label = "Brave"
+yay = ["brave-bin"]
+
+[[selections.browsers]]
+label = "Zen Browser"
+yay = ["zen-browser-bin"]
+
+[[selections.browsers]]
+label = "LibreWolf"
+yay = ["librewolf-bin"]
+
+[[selections.browsers]]
+label = "Mullvad"
+yay = ["mullvad-browser-bin"]
+
+[[selections.browsers]]
+label = "qutebrowser"
+pacman = ["qutebrowser"]
+
+# Terminal Emulators
+[[selections.terminals]]
+label = "Ghostty"
+pacman = ["ghostty"]
+
+[[selections.terminals]]
+label = "Kitty"
+pacman = ["kitty"]
+
+[[selections.terminals]]
+label = "Alacritty"
+pacman = ["alacritty"]
+
+# Code Editors
+[[selections.editors]]
+label = "Zed"
+pacman = ["zed"]
+
+[[selections.editors]]
+label = "Cursor"
+yay = ["cursor-bin"]
+
+[[selections.editors]]
+label = "Visual Studio Code"
+yay = ["visual-studio-code-bin"]
+
+[[selections.editors]]
+label = "VSCodium"
+yay = ["vscodium-bin"]
+
+[[selections.editors]]
+label = "Sublime Text 4"
+yay = ["sublime-text-4"]

@@ -43,6 +43,13 @@ Copy `.env.example` to `.env` in the repo root and edit as needed. The installer
 | `NEBULA_PACMAN_MIRROR` | empty | Base URL for pacman mirrors (e.g. `https://mirror.nebulalinux.com/stable`) |
 | `NEBULA_PACMAN_MIRRORLIST` | empty | Full mirrorlist contents, overrides `NEBULA_PACMAN_MIRROR` when set |
 
+### Config
+
+The installer reads `nebula-installer/config.toml` at build time (embedded into the binary).
+Use it to manage:
+- Base package lists (`[packages]`)
+- App selection lists (`[selections]` for browsers, editors, terminals, compositors)
+
 ### Live Installer
 
 - Select target disk

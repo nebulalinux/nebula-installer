@@ -6,6 +6,7 @@ mod model;
 mod monitors;
 mod network;
 mod packages;
+mod config;
 mod selection;
 mod timezones;
 mod ui;
@@ -43,8 +44,8 @@ use crate::network::{
 };
 use crate::packages::{hyprland_packages, required_packages};
 use crate::selection::{
-    labels_for_flags, labels_for_selection, selection_from_app_flags, AppSelectionFlags,
-    PackageSelection, BROWSER_CHOICES, COMPOSITOR_LABELS, EDITOR_CHOICES, TERMINAL_CHOICES,
+    browser_choices, compositor_labels, editor_choices, labels_for_flags, labels_for_selection,
+    selection_from_app_flags, terminal_choices, AppSelectionFlags, PackageSelection,
 };
 use crate::timezones::{
     detect_timezone_geoip, detect_timezone_local, find_timezone_index, load_timezones,
@@ -1315,10 +1316,10 @@ fn main() -> Result<()> {
                     continue;
                 };
                 let compositor_labels =
-                    labels_for_flags(&app_flags.compositors, &COMPOSITOR_LABELS);
-                let browser_labels = labels_for_selection(&app_selection, &BROWSER_CHOICES);
-                let editor_labels = labels_for_selection(&app_selection, &EDITOR_CHOICES);
-                let terminal_labels = labels_for_selection(&app_selection, &TERMINAL_CHOICES);
+                    labels_for_flags(&app_flags.compositors, compositor_labels());
+                let browser_labels = labels_for_selection(&app_selection, browser_choices());
+                let editor_labels = labels_for_selection(&app_selection, editor_choices());
+                let terminal_labels = labels_for_selection(&app_selection, terminal_choices());
                 let system_items = vec![
                     ReviewItem {
                         label: "Network".to_string(),

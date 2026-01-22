@@ -7,12 +7,10 @@ pub struct PackageSelection {
 
 impl PackageSelection {}
 
+use crate::config::{config, ChoiceConfig};
+
 // Single installable application choice in the UI
-pub struct InstallChoice {
-    pub label: &'static str,             // The name displayed in the UI
-    pub pacman: &'static [&'static str], // Pacman packages required for this choice
-    pub yay: &'static [&'static str],    // Yay (AUR) packages required for this choice
-}
+pub type InstallChoice = ChoiceConfig;
 
 // State of the checkboxes in the application selection screen
 #[derive(Clone)]
@@ -26,15 +24,15 @@ pub struct AppSelectionFlags {
 impl AppSelectionFlags {
     // Creates a new set of application selection flags with default values
     pub fn new() -> Self {
-        let mut compositors = vec![false; COMPOSITOR_LABELS.len()];
+        let mut compositors = vec![false; compositor_labels().len()];
         if let Some(flag) = compositors.first_mut() {
             *flag = true;
         }
         Self {
             compositors,
-            browsers: vec![false; BROWSER_CHOICES.len()],
-            editors: vec![false; EDITOR_CHOICES.len()],
-            terminals: vec![false; TERMINAL_CHOICES.len()],
+            browsers: vec![false; browser_choices().len()],
+            editors: vec![false; editor_choices().len()],
+            terminals: vec![false; terminal_choices().len()],
         }
     }
 
@@ -52,136 +50,36 @@ impl Default for AppSelectionFlags {
     }
 }
 
-// Packages
-const FIREFOX_PACMAN: [&str; 2] = ["firefox", "firefox-ublock-origin"];
-const CHROMIUM_PACMAN: [&str; 1] = ["chromium"];
-const UNGOOGLED_YAY: [&str; 1] = ["ungoogled-chromium-bin"];
-const HELIUM_YAY: [&str; 1] = ["helium-browser-bin"];
-const BRAVE_YAY: [&str; 1] = ["brave-bin"];
-const ZEN_YAY: [&str; 1] = ["zen-browser-bin"];
-const LIBREWOLF_YAY: [&str; 1] = ["librewolf-bin"];
-const MULLVAD_YAY: [&str; 1] = ["mullvad-browser-bin"];
-const QUTEBROWSER_PACMAN: [&str; 1] = ["qutebrowser"];
-const GHOSTTY_PACMAN: [&str; 1] = ["ghostty"];
-const KITTY_PACMAN: [&str; 1] = ["kitty"];
-const ALACRITTY_PACMAN: [&str; 1] = ["alacritty"];
-const ZED_PACMAN: [&str; 1] = ["zed"];
-const CURSOR_YAY: [&str; 1] = ["cursor-bin"];
-const VSCODE_YAY: [&str; 1] = ["visual-studio-code-bin"];
-const VSCODIUM_YAY: [&str; 1] = ["vscodium-bin"];
-const SUBLIME_YAY: [&str; 1] = ["sublime-text-4"];
+pub fn compositor_labels() -> &'static [String] {
+    &config().selections.compositors
+}
 
-pub const COMPOSITOR_LABELS: [&str; 1] = ["Hyprland"];
+pub fn browser_choices() -> &'static [InstallChoice] {
+    &config().selections.browsers
+}
 
-// Lists of available choices
-pub const BROWSER_CHOICES: [InstallChoice; 9] = [
-    InstallChoice {
-        label: "Firefox",
-        pacman: &FIREFOX_PACMAN,
-        yay: &[],
-    },
-    InstallChoice {
-        label: "Chromium",
-        pacman: &CHROMIUM_PACMAN,
-        yay: &[],
-    },
-    InstallChoice {
-        label: "Ungoogled Chromium",
-        pacman: &[],
-        yay: &UNGOOGLED_YAY,
-    },
-    InstallChoice {
-        label: "Helium",
-        pacman: &[],
-        yay: &HELIUM_YAY,
-    },
-    InstallChoice {
-        label: "Brave",
-        pacman: &[],
-        yay: &BRAVE_YAY,
-    },
-    InstallChoice {
-        label: "Zen Browser",
-        pacman: &[],
-        yay: &ZEN_YAY,
-    },
-    InstallChoice {
-        label: "LibreWolf",
-        pacman: &[],
-        yay: &LIBREWOLF_YAY,
-    },
-    InstallChoice {
-        label: "Mullvad",
-        pacman: &[],
-        yay: &MULLVAD_YAY,
-    },
-    InstallChoice {
-        label: "qutebrowser",
-        pacman: &QUTEBROWSER_PACMAN,
-        yay: &[],
-    },
-];
+pub fn editor_choices() -> &'static [InstallChoice] {
+    &config().selections.editors
+}
 
-pub const TERMINAL_CHOICES: [InstallChoice; 3] = [
-    InstallChoice {
-        label: "Ghostty",
-        pacman: &GHOSTTY_PACMAN,
-        yay: &[],
-    },
-    InstallChoice {
-        label: "Kitty",
-        pacman: &KITTY_PACMAN,
-        yay: &[],
-    },
-    InstallChoice {
-        label: "Alacritty",
-        pacman: &ALACRITTY_PACMAN,
-        yay: &[],
-    },
-];
-
-pub const EDITOR_CHOICES: [InstallChoice; 5] = [
-    InstallChoice {
-        label: "Zed",
-        pacman: &ZED_PACMAN,
-        yay: &[],
-    },
-    InstallChoice {
-        label: "Cursor",
-        pacman: &[],
-        yay: &CURSOR_YAY,
-    },
-    InstallChoice {
-        label: "Visual Studio Code",
-        pacman: &[],
-        yay: &VSCODE_YAY,
-    },
-    InstallChoice {
-        label: "VSCodium",
-        pacman: &[],
-        yay: &VSCODIUM_YAY,
-    },
-    InstallChoice {
-        label: "Sublime Text 4",
-        pacman: &[],
-        yay: &SUBLIME_YAY,
-    },
-];
+pub fn terminal_choices() -> &'static [InstallChoice] {
+    &config().selections.terminals
+}
 
 // Converts the application selection flags from the UI into a PackageSelection
 pub fn selection_from_app_flags(flags: &AppSelectionFlags) -> PackageSelection {
     let mut selection = PackageSelection::default();
     merge_selection(
         &mut selection,
-        selection_from_flags_for(&flags.browsers, &BROWSER_CHOICES),
+        selection_from_flags_for(&flags.browsers, browser_choices()),
     );
     merge_selection(
         &mut selection,
-        selection_from_flags_for(&flags.editors, &EDITOR_CHOICES),
+        selection_from_flags_for(&flags.editors, editor_choices()),
     );
     merge_selection(
         &mut selection,
-        selection_from_flags_for(&flags.terminals, &TERMINAL_CHOICES),
+        selection_from_flags_for(&flags.terminals, terminal_choices()),
     );
     selection
 }
@@ -191,8 +89,8 @@ pub fn selection_from_flags_for(flags: &[bool], choices: &[InstallChoice]) -> Pa
     let mut selection = PackageSelection::default();
     for (flag, choice) in flags.iter().copied().zip(choices.iter()) {
         if flag {
-            extend_unique(&mut selection.pacman, choice.pacman);
-            extend_unique(&mut selection.yay, choice.yay);
+            extend_unique(&mut selection.pacman, &choice.pacman);
+            extend_unique(&mut selection.yay, &choice.yay);
         }
     }
     selection
@@ -213,9 +111,9 @@ pub fn labels_for_selection(
 }
 
 // Gets the labels corresponding to a set of boolean flags
-pub fn labels_for_flags(flags: &[bool], labels: &[&str]) -> Vec<String> {
+pub fn labels_for_flags(flags: &[bool], labels: &[String]) -> Vec<String> {
     let mut selected = Vec::new();
-    for (flag, label) in flags.iter().copied().zip(labels.iter().copied()) {
+    for (flag, label) in flags.iter().copied().zip(labels.iter()) {
         if flag {
             selected.push(label.to_string());
         }
@@ -225,12 +123,12 @@ pub fn labels_for_flags(flags: &[bool], labels: &[&str]) -> Vec<String> {
 
 // Checks if a specific install choice is selected based on the package lists
 fn choice_selected(selection: &PackageSelection, choice: &InstallChoice) -> bool {
-    for pkg in choice.pacman {
+    for pkg in &choice.pacman {
         if !selection.pacman.iter().any(|installed| installed == pkg) {
             return false;
         }
     }
-    for pkg in choice.yay {
+    for pkg in &choice.yay {
         if !selection.yay.iter().any(|installed| installed == pkg) {
             return false;
         }
@@ -239,10 +137,10 @@ fn choice_selected(selection: &PackageSelection, choice: &InstallChoice) -> bool
 }
 
 // Add elements to a vector, ensuring no duplicates
-fn extend_unique(target: &mut Vec<String>, values: &[&str]) {
+fn extend_unique(target: &mut Vec<String>, values: &[String]) {
     for value in values {
         if !target.iter().any(|existing| existing == value) {
-            target.push(value.to_string());
+            target.push(value.clone());
         }
     }
 }

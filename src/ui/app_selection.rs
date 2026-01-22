@@ -14,7 +14,7 @@ use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Padding, Parag
 use ratatui::{Frame, Terminal};
 
 use crate::selection::{
-    AppSelectionFlags, BROWSER_CHOICES, COMPOSITOR_LABELS, EDITOR_CHOICES, TERMINAL_CHOICES,
+    browser_choices, compositor_labels, editor_choices, terminal_choices, AppSelectionFlags,
 };
 use crate::ui::colors::PURE_WHITE;
 
@@ -168,7 +168,7 @@ fn draw_application_selector(
     let browser_area = left_layout[1];
 
     // --- Render Compositor List ---
-    let compositor_items: Vec<ListItem> = COMPOSITOR_LABELS
+    let compositor_items: Vec<ListItem> = compositor_labels()
         .iter()
         .enumerate()
         .map(|(idx, label)| {
@@ -177,7 +177,7 @@ fn draw_application_selector(
                 ListItem::new(Line::from(vec![
                     Span::styled("[󰸞]", Style::default().fg(Color::LightGreen)), // Checkbox checked
                     Span::raw(" "),
-                    Span::styled(*label, Style::default().fg(Color::Blue)),
+                    Span::styled(label.as_str(), Style::default().fg(Color::Blue)),
                 ]))
             } else {
                 ListItem::new(Line::from(format!("[ ] {}", label))) // Checkbox unchecked
@@ -210,13 +210,13 @@ fn draw_application_selector(
                 .add_modifier(Modifier::BOLD),
         );
     let mut compositor_state = ListState::default();
-    if compositor_active && !COMPOSITOR_LABELS.is_empty() {
-        compositor_state.select(Some(compositor_cursor.min(COMPOSITOR_LABELS.len() - 1)));
+    if compositor_active && !compositor_labels().is_empty() {
+        compositor_state.select(Some(compositor_cursor.min(compositor_labels().len() - 1)));
     }
     f.render_stateful_widget(compositor_list, compositor_area, &mut compositor_state);
 
     // --- Render Browser List ---
-    let browser_items: Vec<ListItem> = BROWSER_CHOICES
+    let browser_items: Vec<ListItem> = browser_choices()
         .iter()
         .enumerate()
         .map(|(idx, choice)| {
@@ -225,7 +225,7 @@ fn draw_application_selector(
                 ListItem::new(Line::from(vec![
                     Span::styled("[󰸞]", Style::default().fg(Color::LightGreen)),
                     Span::raw(" "),
-                    Span::styled(choice.label, Style::default().fg(Color::Blue)),
+                    Span::styled(choice.label.as_str(), Style::default().fg(Color::Blue)),
                 ]))
             } else {
                 ListItem::new(Line::from(format!("[ ] {}", choice.label)))
@@ -258,13 +258,13 @@ fn draw_application_selector(
                 .add_modifier(Modifier::BOLD),
         );
     let mut browser_state = ListState::default();
-    if browser_active && !BROWSER_CHOICES.is_empty() {
-        browser_state.select(Some(browser_cursor.min(BROWSER_CHOICES.len() - 1)));
+    if browser_active && !browser_choices().is_empty() {
+        browser_state.select(Some(browser_cursor.min(browser_choices().len() - 1)));
     }
     f.render_stateful_widget(browser_list, browser_area, &mut browser_state);
 
     // --- Render Editor List ---
-    let editor_items: Vec<ListItem> = EDITOR_CHOICES
+    let editor_items: Vec<ListItem> = editor_choices()
         .iter()
         .enumerate()
         .map(|(idx, choice)| {
@@ -273,7 +273,7 @@ fn draw_application_selector(
                 ListItem::new(Line::from(vec![
                     Span::styled("[󰸞]", Style::default().fg(Color::LightGreen)),
                     Span::raw(" "),
-                    Span::styled(choice.label, Style::default().fg(Color::Blue)),
+                    Span::styled(choice.label.as_str(), Style::default().fg(Color::Blue)),
                 ]))
             } else {
                 ListItem::new(Line::from(format!("[ ] {}", choice.label)))
@@ -306,13 +306,13 @@ fn draw_application_selector(
                 .add_modifier(Modifier::BOLD),
         );
     let mut editor_state = ListState::default();
-    if editor_active && !EDITOR_CHOICES.is_empty() {
-        editor_state.select(Some(editor_cursor.min(EDITOR_CHOICES.len() - 1)));
+    if editor_active && !editor_choices().is_empty() {
+        editor_state.select(Some(editor_cursor.min(editor_choices().len() - 1)));
     }
     f.render_stateful_widget(editor_list, editor_area, &mut editor_state);
 
     // --- Render Terminal List ---
-    let terminal_items: Vec<ListItem> = TERMINAL_CHOICES
+    let terminal_items: Vec<ListItem> = terminal_choices()
         .iter()
         .enumerate()
         .map(|(idx, choice)| {
@@ -321,7 +321,7 @@ fn draw_application_selector(
                 ListItem::new(Line::from(vec![
                     Span::styled("[󰸞]", Style::default().fg(Color::LightGreen)),
                     Span::raw(" "),
-                    Span::styled(choice.label, Style::default().fg(Color::Blue)),
+                    Span::styled(choice.label.as_str(), Style::default().fg(Color::Blue)),
                 ]))
             } else {
                 ListItem::new(Line::from(format!("[ ] {}", choice.label)))
@@ -355,8 +355,8 @@ fn draw_application_selector(
                 .add_modifier(Modifier::BOLD),
         );
     let mut terminal_state = ListState::default();
-    if terminal_active && !TERMINAL_CHOICES.is_empty() {
-        terminal_state.select(Some(terminal_cursor.min(TERMINAL_CHOICES.len() - 1)));
+    if terminal_active && !terminal_choices().is_empty() {
+        terminal_state.select(Some(terminal_cursor.min(terminal_choices().len() - 1)));
     }
     f.render_stateful_widget(terminal_list, terminal_area, &mut terminal_state);
 
@@ -413,10 +413,10 @@ pub fn run_application_selector(
     let mut flags = initial.clone();
     flags.enforce_defaults();
     // Ensure flag vectors are the correct length
-    normalize_flags(&mut flags.compositors, COMPOSITOR_LABELS.len());
-    normalize_flags(&mut flags.browsers, BROWSER_CHOICES.len());
-    normalize_flags(&mut flags.editors, EDITOR_CHOICES.len());
-    normalize_flags(&mut flags.terminals, TERMINAL_CHOICES.len());
+    normalize_flags(&mut flags.compositors, compositor_labels().len());
+    normalize_flags(&mut flags.browsers, browser_choices().len());
+    normalize_flags(&mut flags.editors, editor_choices().len());
+    normalize_flags(&mut flags.terminals, terminal_choices().len());
 
     // State for the focused column and the cursor position in each column
     let mut focus = AppSelectionFocus::Browsers;
@@ -474,7 +474,7 @@ pub fn run_application_selector(
                         AppSelectionFocus::Browsers => {
                             if browser_cursor > 0 {
                                 browser_cursor -= 1;
-                            } else if !COMPOSITOR_LABELS.is_empty() {
+                            } else if !compositor_labels().is_empty() {
                                 focus = AppSelectionFocus::Compositors;
                             }
                         }
@@ -491,24 +491,24 @@ pub fn run_application_selector(
                     },
                     KeyCode::Down => match focus {
                         AppSelectionFocus::Compositors => {
-                            if compositor_cursor + 1 < COMPOSITOR_LABELS.len() {
+                            if compositor_cursor + 1 < compositor_labels().len() {
                                 compositor_cursor += 1;
-                            } else if !BROWSER_CHOICES.is_empty() {
+                            } else if !browser_choices().is_empty() {
                                 focus = AppSelectionFocus::Browsers;
                             }
                         }
                         AppSelectionFocus::Browsers => {
-                            if browser_cursor + 1 < BROWSER_CHOICES.len() {
+                            if browser_cursor + 1 < browser_choices().len() {
                                 browser_cursor += 1;
                             }
                         }
                         AppSelectionFocus::Editors => {
-                            if editor_cursor + 1 < EDITOR_CHOICES.len() {
+                            if editor_cursor + 1 < editor_choices().len() {
                                 editor_cursor += 1;
                             }
                         }
                         AppSelectionFocus::Terminals => {
-                            if terminal_cursor + 1 < TERMINAL_CHOICES.len() {
+                            if terminal_cursor + 1 < terminal_choices().len() {
                                 terminal_cursor += 1;
                             }
                         }
