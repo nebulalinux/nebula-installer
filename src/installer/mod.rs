@@ -470,6 +470,12 @@ pub fn run_installer(
             update_grub_cmdline(&root_uuid)?;
         }
         if config.encrypt_disk && !luks_installed {
+            send_event(
+                &tx,
+                InstallerEvent::Log(
+                    "Plymouth LUKS theme missing! Disabling quiet splash to ensure crypt prompt is visible.".to_string(),
+                ),
+            );
             remove_grub_cmdline_params(&["quiet", "splash"])?;
         } else {
             ensure_grub_cmdline_params(&["quiet", "splash"])?;
