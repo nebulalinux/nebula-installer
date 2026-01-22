@@ -88,6 +88,45 @@ fn confirm_cmdline(params: &[&str]) -> String {
     format!("GRUB_CMDLINE_LINUX=\" { }\"\n", params.join(" "))
 }
 
+pub(crate) fn remove_grub_cmdline_params(params: &[&str]) -> Result<()> {
+    let path = "/mnt/etc/default/grub";
+    let contents = fs::read_to_string(path).context("read grub config")?;
+    let mut updated = String::new();
+    let mut replaced = false;
+
+    for line in contents.lines() {
+        if line.starts_with("GRUB_CMDLINE_LINUX=") {
+            let mut value = String::new();
+            if let Some(start) = line.find('"') {
+                if let Some(end) = line.rfind('"') {
+                    if end > start {
+                        let inner = &line[start + 1..end];
+                        let mut parts: Vec<&str> = inner.split_whitespace().collect();
+                        parts.retain(|part| !params.iter().any(|param| param == part));
+                        value = format!("GRUB_CMDLINE_LINUX=\" {}\"", parts.join(" "));
+                    }
+                }
+            }
+            if value.is_empty() {
+                value = "GRUB_CMDLINE_LINUX=\" \"".to_string();
+            }
+            updated.push_str(&value);
+            updated.push('\n');
+            replaced = true;
+        } else {
+            updated.push_str(line);
+            updated.push('\n');
+        }
+    }
+
+    if !replaced {
+        updated.push_str("GRUB_CMDLINE_LINUX=\" \"\n");
+    }
+
+    fs::write(path, updated).context("write grub config")?;
+    Ok(())
+}
+
 // Installs the custom Nebula GRUB theme
 pub(crate) fn install_grub_theme(tx: &crossbeam_channel::Sender<InstallerEvent>) -> Result<()> {
     let theme_dest = "/mnt/boot/grub/themes/nebula-vimix-grub";

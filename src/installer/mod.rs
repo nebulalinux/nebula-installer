@@ -29,8 +29,8 @@ use system::{
     schedule_nebula_theme, write_file, write_os_release,
 };
 use themes::{
-    ensure_grub_cmdline_params, install_grub_theme, install_sddm_theme, set_grub_distributor,
-    set_grub_gfx, update_grub_cmdline,
+    ensure_grub_cmdline_params, install_grub_theme, install_sddm_theme,
+    remove_grub_cmdline_params, set_grub_distributor, set_grub_gfx, update_grub_cmdline,
 };
 
 // Configuration choices made by the user
@@ -469,7 +469,11 @@ pub fn run_installer(
             )?;
             update_grub_cmdline(&root_uuid)?;
         }
-        ensure_grub_cmdline_params(&["quiet", "splash"])?;
+        if config.encrypt_disk && !luks_installed {
+            remove_grub_cmdline_params(&["quiet", "splash"])?;
+        } else {
+            ensure_grub_cmdline_params(&["quiet", "splash"])?;
+        }
 
         Ok(())
     })?;
