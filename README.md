@@ -2,7 +2,7 @@
 	<a href="https://github.com/nebulalinux"><img src="https://i.imgur.com/4PjBVpt.png" style="border-radius: 50%;" height="200" width="200" alt="Nubela Linux"></a>
 </p>
 
-<h4 align="center">TUI installer for <a href="https://www.archlinux.org">Nebula Linux</a></h4>
+<h4 align="center">TUI installer for <a href="https://github.com/nebulalinux">Nebula Linux</a></h4>
 
 ![nebula-installer screenshot](https://i.imgur.com/MhuQo6t.png)
 
