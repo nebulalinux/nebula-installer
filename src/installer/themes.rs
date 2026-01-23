@@ -6,9 +6,9 @@ use anyhow::{Context, Result};
 use crate::model::InstallerEvent;
 
 use super::commands::run_command;
+use super::send_event;
 use super::system::get_wlr_randr_output;
 use super::system::write_file;
-use super::send_event;
 
 // Updates the GRUB command line for an encrypted root filesystem
 pub(crate) fn update_grub_cmdline(root_uuid: &str) -> Result<()> {
@@ -543,17 +543,22 @@ fn find_theme_under(root: &str, theme_dir: &str, max_depth: usize) -> Option<Pat
 fn select_grub_theme_selection(width: u32, height: u32) -> GrubThemeSelection {
     if width >= 3840 || height >= 2160 {
         GrubThemeSelection {
-            folder: "2160p",
+            folder: "4k",
             gfxmode: "3840x2160",
         }
-    } else if width >= 3440 {
+    } else if width >= 3440 && height >= 1440 {
         GrubThemeSelection {
-            folder: "uwqhd",
+            folder: "ultrawide2k",
             gfxmode: "3440x1440",
+        }
+    } else if width >= 2560 && height <= 1080 {
+        GrubThemeSelection {
+            folder: "ultrawide",
+            gfxmode: "2560x1080",
         }
     } else if width >= 2560 || height >= 1440 {
         GrubThemeSelection {
-            folder: "1440p",
+            folder: "2k",
             gfxmode: "2560x1440",
         }
     } else {

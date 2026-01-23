@@ -41,6 +41,7 @@ required = [
   "sddm",
   "nebula-keybind-menu",
   "nebula-oh-my-zsh",
+  "nebula-vimix-grub",
   "xdg-desktop-portal",
   "xdg-desktop-portal-gtk",
   "xdg-utils",
