@@ -490,6 +490,19 @@ pub fn run_installer(
             &tx,
             InstallerEvent::Log("Installing selected apps and packages...".to_string()),
         );
+        // Remove pre-copied Plymouth themes so pacman can install the packages cleanly
+        run_command(
+            &tx,
+            "rm",
+            &["-rf", "/mnt/usr/share/plymouth/themes/nebula-splash"],
+            None,
+        )?;
+        run_command(
+            &tx,
+            "rm",
+            &["-rf", "/mnt/usr/share/plymouth/themes/nebula-luks"],
+            None,
+        )?;
         let required_pacman_packages = dedup_packages(config.base_packages.clone());
         let mut optional_packages = Vec::new();
         optional_packages.extend(config.extra_pacman_packages.iter().cloned());
