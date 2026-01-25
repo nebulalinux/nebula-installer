@@ -28,6 +28,7 @@ required = [
   "alacritty",
   "fastfetch",
   "exa",
+  "ripgrep",
   "foot",
   "gcc",
   "yay",
