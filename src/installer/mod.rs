@@ -612,6 +612,21 @@ pub fn run_installer(
              mkdir -p /home/{0}/.config/oh-my-zsh/custom; \
              cp -a -n /etc/skel/.config/oh-my-zsh/custom/plugins /home/{0}/.config/oh-my-zsh/custom/; \
              chown -R {0}:{0} /home/{0}/.config/oh-my-zsh/custom; \
+             fi; \
+             if [ -d /etc/skel/.config/nvim ]; then \
+             mkdir -p /home/{0}/.config; \
+             cp -a -n /etc/skel/.config/nvim /home/{0}/.config/; \
+             chown -R {0}:{0} /home/{0}/.config/nvim; \
+             fi; \
+             if [ -d /etc/skel/.local/share/nvim ]; then \
+             mkdir -p /home/{0}/.local/share; \
+             cp -a -n /etc/skel/.local/share/nvim /home/{0}/.local/share/; \
+             chown -R {0}:{0} /home/{0}/.local/share/nvim; \
+             fi; \
+             if [ -d /etc/skel/.local/state/nvim ]; then \
+             mkdir -p /home/{0}/.local/state; \
+             cp -a -n /etc/skel/.local/state/nvim /home/{0}/.local/state/; \
+             chown -R {0}:{0} /home/{0}/.local/state/nvim; \
              fi",
             config.username
         );

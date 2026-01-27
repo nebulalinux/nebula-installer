@@ -5,6 +5,7 @@
 # Required Packages
 required = [
   "mesa",
+  "base-devel",
   "dunst",
   "grim",
   "slurp",
@@ -45,6 +46,7 @@ required = [
   "sddm",
   "nebula-keybind-menu",
   "nebula-oh-my-zsh",
+  "nebula-lazyvim",
   "nebula-vimix-grub",
   "nebula-splash",
   "nebula-luks",
@@ -60,7 +62,21 @@ required = [
   "qt5-wayland",
   "qt6-wayland",
   "rofi",
+  "debugedit",
+  "fakeroot",
   "jq",
+  "fd",
+  "autoconf",
+  "automake",
+  "make",
+  # DankMaterialShell
+  "dms-shell-bin",
+  "google-breakpad",
+  "quickshell-git",
+  "cava",
+  "cliphist",
+  "dgop",
+  "matugen",
 ]
 
 # Hyprland Packages
