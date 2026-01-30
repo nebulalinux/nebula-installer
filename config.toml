@@ -69,6 +69,7 @@ required = [
   "autoconf",
   "automake",
   "make",
+  "cmake",
   # DankMaterialShell
   "dms-shell-bin",
   "google-breakpad",
@@ -77,6 +78,7 @@ required = [
   "cliphist",
   "dgop",
   "matugen",
+  "python-pywalfox",
 ]
 
 # Hyprland Packages
