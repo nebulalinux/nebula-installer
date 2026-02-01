@@ -1441,6 +1441,8 @@ fn main() -> Result<()> {
         kernel_package,
         kernel_headers,
         base_packages,
+        selected_browsers: labels_for_selection(&app_selection, browser_choices()),
+        selected_editors: labels_for_selection(&app_selection, editor_choices()),
         extra_pacman_packages: app_selection.pacman,
         extra_aur_packages: app_selection.yay,
         offline_only,

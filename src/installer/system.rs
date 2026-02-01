@@ -47,16 +47,18 @@ pub(crate) fn get_uuid(
     Ok(output.trim().to_string())
 }
 
-// Installs Hyprland user config from nebula-hypr
-pub(crate) fn install_nebula_hypr(
+// Installs Hyprland user config from caelestia-meta
+pub(crate) fn install_caelestia(
     tx: &crossbeam_channel::Sender<InstallerEvent>,
     username: &str,
+    selected_browsers: &[String],
+    selected_editors: &[String],
 ) -> Result<()> {
     let sources = [
-        "/mnt/usr/share/nebula-hypr/run.sh",
-        "/usr/share/nebula-hypr/run.sh",
-        "/run/archiso/bootmnt/airootfs/usr/share/nebula-hypr/run.sh",
-        "/run/archiso/bootmnt/usr/share/nebula-hypr/run.sh",
+        "/mnt/usr/share/caelestia/run.sh",
+        "/usr/share/caelestia/run.sh",
+        "/run/archiso/bootmnt/airootfs/usr/share/caelestia/run.sh",
+        "/run/archiso/bootmnt/usr/share/caelestia/run.sh",
     ];
     let mut found = None;
     for source in &sources {
@@ -72,7 +74,7 @@ pub(crate) fn install_nebula_hypr(
         send_event(
             tx,
             InstallerEvent::Log(
-                "nebula-hypr installer script not found; skipping Hyprland config install."
+                "caelestia-meta installer script not found; skipping Caelestia config install."
                     .to_string(),
             ),
         );
@@ -81,9 +83,98 @@ pub(crate) fn install_nebula_hypr(
 
     send_event(
         tx,
-        InstallerEvent::Log(format!("Installing Hyprland defaults from {}...", script)),
+        InstallerEvent::Log(format!("Installing Caelestia defaults from {}...", script)),
     );
     run_command(tx, "bash", &[script, "/mnt", username], None)?;
+
+    let hypr_main = format!("/mnt/home/{}/.config/hypr/hyprland.conf", username);
+    let monitors_source = "source = ~/.config/hypr/monitors.conf";
+    if Path::new(&hypr_main).exists() {
+        let existing = fs::read_to_string(&hypr_main).unwrap_or_default();
+        if !existing.lines().any(|line| line.trim() == monitors_source) {
+            let mut updated = existing;
+            if !updated.ends_with('\n') {
+                updated.push('\n');
+            }
+            updated.push_str("# Nebula monitor config\n");
+            updated.push_str(monitors_source);
+            updated.push('\n');
+            fs::write(&hypr_main, updated).context("append Hyprland monitor include")?;
+        }
+    }
+
+    install_caelestia_optional_configs(username, selected_browsers, selected_editors)?;
+    Ok(())
+}
+
+fn install_caelestia_optional_configs(
+    username: &str,
+    selected_browsers: &[String],
+    selected_editors: &[String],
+) -> Result<()> {
+    let optional_root = Path::new("/mnt/usr/share/caelestia/optional");
+    if !optional_root.exists() {
+        return Ok(());
+    }
+
+    let home_dir = format!("/mnt/home/{}", username);
+    let config_dir = format!("{}/.config", home_dir);
+    let data_dir = format!("{}/.local/share/nebula/caelestia/optional", home_dir);
+
+    if selected_editors.iter().any(|label| label == "Visual Studio Code") {
+        let vscode_src = optional_root.join("vscode");
+        let vscode_user = format!("{}/Code/User", config_dir);
+        fs::create_dir_all(&vscode_user).context("create vscode user config dir")?;
+        let _ = fs::copy(
+            vscode_src.join("settings.json"),
+            format!("{}/settings.json", vscode_user),
+        );
+        let _ = fs::copy(
+            vscode_src.join("keybindings.json"),
+            format!("{}/keybindings.json", vscode_user),
+        );
+        let _ = fs::copy(
+            vscode_src.join("flags.conf"),
+            format!("{}/code-flags.conf", config_dir),
+        );
+    }
+
+    if selected_editors.iter().any(|label| label == "VSCodium") {
+        let vscode_src = optional_root.join("vscode");
+        let vscodium_user = format!("{}/VSCodium/User", config_dir);
+        fs::create_dir_all(&vscodium_user).context("create vscodium user config dir")?;
+        let _ = fs::copy(
+            vscode_src.join("settings.json"),
+            format!("{}/settings.json", vscodium_user),
+        );
+        let _ = fs::copy(
+            vscode_src.join("keybindings.json"),
+            format!("{}/keybindings.json", vscodium_user),
+        );
+        let _ = fs::copy(
+            vscode_src.join("flags.conf"),
+            format!("{}/codium-flags.conf", config_dir),
+        );
+    }
+
+    if selected_browsers.iter().any(|label| label == "Zen Browser") {
+        let zen_src = optional_root.join("zen");
+        let staged = Path::new(&data_dir).join("zen");
+        fs::create_dir_all(&staged).context("create zen staged dir")?;
+        let _ = fs::copy(
+            zen_src.join("userChrome.css"),
+            staged.join("userChrome.css"),
+        );
+        let _ = fs::copy(
+            zen_src.join("native_app/manifest.json"),
+            staged.join("manifest.json"),
+        );
+        let _ = fs::copy(
+            zen_src.join("native_app/app.fish"),
+            staged.join("app.fish"),
+        );
+    }
+
     Ok(())
 }
 
@@ -100,7 +191,7 @@ pub(crate) fn schedule_nebula_theme(
     let hypr_dir = format!("{}/.local/share/nebula/hypr", home_dir);
     let hypr_include = format!("{}/nebula-theme.conf", hypr_dir);
     let hypr_include_home = "~/.local/share/nebula/hypr/nebula-theme.conf";
-    let hypr_main = "/mnt/usr/share/nebula-hypr/hyprland.conf";
+    let hypr_main = format!("{}/.config/hypr/hyprland.conf", home_dir);
     let hypr_source_line = format!("source = {}", hypr_include_home);
     let hypr_exec_line =
         "exec-once = /bin/bash -lc \"$HOME/.local/share/nebula/post-install/run-gnome-theme.sh\"";
@@ -145,8 +236,8 @@ pub(crate) fn schedule_nebula_theme(
 
     let hypr_include_contents = format!("# Nebula post-install hooks\n{}\n", hypr_exec_line);
     fs::write(&hypr_include, hypr_include_contents).context("write hypr theme include")?;
-    if Path::new(hypr_main).exists() {
-        let existing = fs::read_to_string(hypr_main).unwrap_or_default();
+    if Path::new(&hypr_main).exists() {
+        let existing = fs::read_to_string(&hypr_main).unwrap_or_default();
         let mut updated =
             existing.replace(&format!("source = {}", hypr_include), hypr_include_home);
         updated = updated
@@ -163,7 +254,7 @@ pub(crate) fn schedule_nebula_theme(
             updated.push('\n');
         }
         if updated != existing {
-            fs::write(hypr_main, updated).context("append hypr theme include")?;
+            fs::write(&hypr_main, updated).context("append hypr theme include")?;
         }
     } else {
         send_event(
@@ -191,6 +282,120 @@ pub(crate) fn schedule_nebula_theme(
         ],
         None,
     )?;
+    Ok(())
+}
+
+// Schedules a one-time Caelestia init on first Hyprland login
+pub(crate) fn schedule_caelestia_init(
+    tx: &crossbeam_channel::Sender<InstallerEvent>,
+    username: &str,
+) -> Result<()> {
+    let home_dir = format!("/mnt/home/{}", username);
+    let autostart_dir = format!("{}/.config/autostart", home_dir);
+    let autostart_file = format!("{}/caelestia-init.desktop", autostart_dir);
+    let script_dir = format!("{}/.local/share/nebula/post-install", home_dir);
+    let script_path = format!("{}/run-caelestia-init.sh", script_dir);
+    let hypr_dir = format!("{}/.local/share/nebula/hypr", home_dir);
+    let hypr_include = format!("{}/caelestia-init.conf", hypr_dir);
+    let hypr_include_home = "~/.local/share/nebula/hypr/caelestia-init.conf";
+    let hypr_main = format!("{}/.config/hypr/hyprland.conf", home_dir);
+    let hypr_source_line = format!("source = {}", hypr_include_home);
+    let hypr_exec_line = "exec-once = /bin/bash -lc \"$HOME/.local/share/nebula/post-install/run-caelestia-init.sh\"";
+
+    fs::create_dir_all(&autostart_dir).context("create autostart dir")?;
+    fs::create_dir_all(&script_dir).context("create caelestia init script dir")?;
+    fs::create_dir_all(&hypr_dir).context("create hypr init dir")?;
+
+    let autostart_contents = concat!(
+        "[Desktop Entry]\n",
+        "Type=Application\n",
+        "Name=Caelestia Init\n",
+        "Comment=Apply Caelestia scheme on first Hyprland login\n",
+        "Exec=/bin/bash -lc \"$HOME/.local/share/nebula/post-install/run-caelestia-init.sh\"\n",
+        "Terminal=false\n",
+        "OnlyShowIn=Hyprland;\n",
+        "X-GNOME-Autostart-enabled=true\n",
+    );
+    fs::write(&autostart_file, autostart_contents).context("write caelestia init autostart")?;
+
+    let script_contents = concat!(
+        "#!/usr/bin/env bash\n",
+        "set -euo pipefail\n",
+        "marker=\"$HOME/.cache/caelestia-init-done\"\n",
+        "if [[ -f \"$marker\" ]]; then\n",
+        "  exit 0\n",
+        "fi\n",
+        "if command -v caelestia >/dev/null 2>&1; then\n",
+        "  caelestia wallpaper -f \"$HOME/Pictures/Wallpapers/27.jpg\" || true\n",
+        "  caelestia scheme set -n dynamic || true\n",
+        "fi\n",
+        "if command -v hyprctl >/dev/null 2>&1; then\n",
+        "  hyprctl reload || true\n",
+        "fi\n",
+        "\n",
+        "# Apply Zen optional config if staged and profile exists\n",
+        "staged_zen=\"$HOME/.local/share/nebula/caelestia/optional/zen\"\n",
+        "if [[ -d \"$staged_zen\" ]]; then\n",
+        "  for chrome_dir in \"$HOME/.zen\"/*/chrome; do\n",
+        "    if [[ -d \"$chrome_dir\" ]]; then\n",
+        "      cp -f \"$staged_zen/userChrome.css\" \"$chrome_dir/userChrome.css\" 2>/dev/null || true\n",
+        "    fi\n",
+        "  done\n",
+        "  if [[ -f \"$staged_zen/manifest.json\" ]]; then\n",
+        "    mkdir -p \"$HOME/.mozilla/native-messaging-hosts\"\n",
+        "    cp -f \"$staged_zen/manifest.json\" \"$HOME/.mozilla/native-messaging-hosts/caelestiafox.json\" 2>/dev/null || true\n",
+        "    sed -i \"s|{{ \\$lib }}|$HOME/.local/lib/caelestia|g\" \"$HOME/.mozilla/native-messaging-hosts/caelestiafox.json\" 2>/dev/null || true\n",
+        "  fi\n",
+        "  if [[ -f \"$staged_zen/app.fish\" ]]; then\n",
+        "    mkdir -p \"$HOME/.local/lib/caelestia\"\n",
+        "    cp -f \"$staged_zen/app.fish\" \"$HOME/.local/lib/caelestia/caelestiafox\" 2>/dev/null || true\n",
+        "    chmod +x \"$HOME/.local/lib/caelestia/caelestiafox\" 2>/dev/null || true\n",
+        "  fi\n",
+        "fi\n",
+        "\n",
+        "mkdir -p \"$(dirname \"$marker\")\"\n",
+        "touch \"$marker\"\n",
+        "autostart_file=\"$HOME/.config/autostart/caelestia-init.desktop\"\n",
+        "if [[ -f \"$autostart_file\" ]]; then\n",
+        "  rm -f \"$autostart_file\"\n",
+        "fi\n",
+    );
+    fs::write(&script_path, script_contents).context("write caelestia init script")?;
+    run_command(tx, "chmod", &["+x", &script_path], None)?;
+
+    let hypr_include_contents = format!("# Nebula Caelestia init\n{}\n", hypr_exec_line);
+    fs::write(&hypr_include, hypr_include_contents).context("write hypr init include")?;
+    if Path::new(&hypr_main).exists() {
+        let existing = fs::read_to_string(&hypr_main).unwrap_or_default();
+        if !existing.lines().any(|line| line.trim() == hypr_source_line) {
+            let mut updated = existing;
+            if !updated.ends_with('\n') {
+                updated.push('\n');
+            }
+            updated.push_str("# Nebula Caelestia init\n");
+            updated.push_str(&hypr_source_line);
+            updated.push('\n');
+            fs::write(&hypr_main, updated).context("append hypr init include")?;
+        }
+    }
+
+    let chown_user = format!("{}:{}", username, username);
+    let chown_autostart = format!("/home/{}/.config/autostart", username);
+    let chown_script_dir = format!("/home/{}/.local/share/nebula/post-install", username);
+    let chown_hypr_include = format!("/home/{}/.local/share/nebula/hypr", username);
+    run_chroot(
+        tx,
+        &[
+            "chown",
+            "-R",
+            &chown_user,
+            &chown_autostart,
+            &chown_script_dir,
+            &chown_hypr_include,
+        ],
+        None,
+    )?;
+
     Ok(())
 }
 
@@ -241,7 +446,9 @@ pub(crate) fn configure_hypr_monitors(
     Ok(())
 }
 
-pub(crate) fn get_wlr_randr_output(tx: &crossbeam_channel::Sender<InstallerEvent>) -> Option<String> {
+pub(crate) fn get_wlr_randr_output(
+    tx: &crossbeam_channel::Sender<InstallerEvent>,
+) -> Option<String> {
     if let Ok(contents) = fs::read_to_string(WLR_RANDR_CACHE_PATH) {
         if !contents.trim().is_empty() {
             send_event(

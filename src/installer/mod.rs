@@ -25,8 +25,8 @@ use pacman::{
 };
 use system::{
     close_cryptroot_with_retries, configure_hypr_monitors, configure_zram,
-    copy_installer_log, detect_microcode_package, get_uuid, install_nebula_hypr,
-    schedule_nebula_theme, write_file, write_os_release,
+    copy_installer_log, detect_microcode_package, get_uuid, install_caelestia,
+    schedule_caelestia_init, schedule_nebula_theme, write_file, write_os_release,
 };
 use themes::{
     ensure_grub_cmdline_params, install_grub_theme, install_sddm_theme,
@@ -50,6 +50,8 @@ pub struct InstallConfig {
     pub base_packages: Vec<String>,
     pub extra_pacman_packages: Vec<String>,
     pub extra_aur_packages: Vec<String>,
+    pub selected_browsers: Vec<String>,
+    pub selected_editors: Vec<String>,
     pub offline_only: bool,
     pub hyprland_selected: bool,
 }
@@ -665,9 +667,15 @@ pub fn run_installer(
             );
         }
         if config.hyprland_selected {
-            install_nebula_hypr(&tx, &config.username)?;
+            install_caelestia(
+                &tx,
+                &config.username,
+                &config.selected_browsers,
+                &config.selected_editors,
+            )?;
             configure_hypr_monitors(&tx, &config.username)?;
             schedule_nebula_theme(&tx, &config.username)?;
+            schedule_caelestia_init(&tx, &config.username)?;
         }
         let home_config = format!("/home/{}/.config", config.username);
         let home_local = format!("/home/{}/.local", config.username);
