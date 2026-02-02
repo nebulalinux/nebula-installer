@@ -133,7 +133,7 @@ yay = ["brave-bin"]
 
 [[selections.browsers]]
 label = "Zen Browser"
-yay = ["zen-browser-bin"]
+pacman = ["zen-browser-bin"]
 
 [[selections.browsers]]
 label = "LibreWolf"

@@ -28,9 +28,19 @@ impl AppSelectionFlags {
         if let Some(flag) = compositors.first_mut() {
             *flag = true;
         }
+        let mut browsers = vec![false; browser_choices().len()];
+        if let Some((idx, _)) = browser_choices()
+            .iter()
+            .enumerate()
+            .find(|(_, choice)| choice.label == "Zen Browser")
+        {
+            if let Some(flag) = browsers.get_mut(idx) {
+                *flag = true;
+            }
+        }
         Self {
             compositors,
-            browsers: vec![false; browser_choices().len()],
+            browsers,
             editors: vec![false; editor_choices().len()],
             terminals: vec![false; terminal_choices().len()],
         }
@@ -39,6 +49,15 @@ impl AppSelectionFlags {
     pub fn enforce_defaults(&mut self) {
         if let Some(flag) = self.compositors.first_mut() {
             *flag = true;
+        }
+        if let Some((idx, _)) = browser_choices()
+            .iter()
+            .enumerate()
+            .find(|(_, choice)| choice.label == "Zen Browser")
+        {
+            if let Some(flag) = self.browsers.get_mut(idx) {
+                *flag = true;
+            }
         }
     }
 }

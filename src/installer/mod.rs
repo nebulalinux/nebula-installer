@@ -536,7 +536,7 @@ pub fn run_installer(
             if !config.offline_only {
                 write_hybrid_pacman_conf(
                     TARGET_HYBRID_PACMAN_CONF_PATH,
-                    optional_needs_nebula_repo,
+                    true,
                 )?;
             }
         }
