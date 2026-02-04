@@ -318,82 +318,31 @@ pub(crate) fn schedule_caelestia_init(
     );
     fs::write(&autostart_file, autostart_contents).context("write caelestia init autostart")?;
 
-    let script_contents = concat!(
-        "#!/usr/bin/env bash\n",
-        "set -euo pipefail\n",
-        "marker=\"$HOME/.cache/caelestia-init-done\"\n",
-        "zen_marker=\"$HOME/.cache/caelestia-zen-done\"\n",
-        "staged_zen=\"$HOME/.local/share/nebula/caelestia/optional/zen\"\n",
-        "log=\"$HOME/.local/share/nebula/logs/caelestia-init.log\"\n",
-        "mkdir -p \"$(dirname \"$log\")\"\n",
-        "echo \"[$(date -Iseconds)] init start\" >> \"$log\"\n",
-        "\n",
-        "if [[ ! -f \"$marker\" ]]; then\n",
-        "  if command -v caelestia >/dev/null 2>&1; then\n",
-        "    echo \"[$(date -Iseconds)] applying wallpaper/scheme\" >> \"$log\"\n",
-        "    caelestia wallpaper -f \"$HOME/Pictures/Wallpapers/27.jpg\" >> \"$log\" 2>&1 || true\n",
-        "    caelestia scheme set -n dynamic >> \"$log\" 2>&1 || true\n",
-        "  fi\n",
-        "  if command -v hyprctl >/dev/null 2>&1; then\n",
-        "    echo \"[$(date -Iseconds)] hyprctl reload\" >> \"$log\"\n",
-        "    hyprctl reload >> \"$log\" 2>&1 || true\n",
-        "  fi\n",
-        "  mkdir -p \"$(dirname \"$marker\")\"\n",
-        "  touch \"$marker\"\n",
-        "fi\n",
-        "\n",
-        "# Apply Zen optional config if staged and profile exists\n",
-        "if [[ -d \"$staged_zen\" && ! -f \"$zen_marker\" ]]; then\n",
-        "  echo \"[$(date -Iseconds)] attempting zen apply\" >> \"$log\"\n",
-        "  zen_applied=0\n",
-        "  for chrome_dir in \"$HOME/.zen\"/*/chrome; do\n",
-        "    if [[ -d \"$chrome_dir\" ]]; then\n",
-        "      cp -f \"$staged_zen/userChrome.css\" \"$chrome_dir/userChrome.css\" >> \"$log\" 2>&1 || true\n",
-        "      zen_applied=1\n",
-        "    fi\n",
-        "  done\n",
-        "  if [[ -f \"$staged_zen/manifest.json\" ]]; then\n",
-        "    mkdir -p \"$HOME/.mozilla/native-messaging-hosts\"\n",
-        "    cp -f \"$staged_zen/manifest.json\" \"$HOME/.mozilla/native-messaging-hosts/caelestiafox.json\" >> \"$log\" 2>&1 || true\n",
-        "    sed -i \"s|{{ \\$lib }}|$HOME/.local/lib/caelestia|g\" \"$HOME/.mozilla/native-messaging-hosts/caelestiafox.json\" >> \"$log\" 2>&1 || true\n",
-        "  fi\n",
-        "  if [[ -f \"$staged_zen/app.fish\" ]]; then\n",
-        "    mkdir -p \"$HOME/.local/lib/caelestia\"\n",
-        "    cp -f \"$staged_zen/app.fish\" \"$HOME/.local/lib/caelestia/caelestiafox\" >> \"$log\" 2>&1 || true\n",
-        "    chmod +x \"$HOME/.local/lib/caelestia/caelestiafox\" >> \"$log\" 2>&1 || true\n",
-        "  fi\n",
-        "  if [[ \"$zen_applied\" -eq 0 ]]; then\n",
-        "    echo \"[$(date -Iseconds)] waiting for zen profile\" >> \"$log\"\n",
-        "    for i in {1..120}; do\n",
-        "      for chrome_dir in \"$HOME/.zen\"/*/chrome; do\n",
-        "        if [[ -d \"$chrome_dir\" ]]; then\n",
-        "          cp -f \"$staged_zen/userChrome.css\" \"$chrome_dir/userChrome.css\" >> \"$log\" 2>&1 || true\n",
-        "          zen_applied=1\n",
-        "          break\n",
-        "        fi\n",
-        "      done\n",
-        "      if [[ \"$zen_applied\" -eq 1 ]]; then\n",
-        "        break\n",
-        "      fi\n",
-        "      sleep 1\n",
-        "    done\n",
-        "  fi\n",
-        "  if [[ \"$zen_applied\" -eq 1 ]]; then\n",
-        "    echo \"[$(date -Iseconds)] zen applied\" >> \"$log\"\n",
-        "    mkdir -p \"$(dirname \"$zen_marker\")\"\n",
-        "    touch \"$zen_marker\"\n",
-        "  else\n",
-        "    echo \"[$(date -Iseconds)] zen profile not found yet\" >> \"$log\"\n",
-        "  fi\n",
-        "fi\n",
-        "\n",
-        "autostart_file=\"$HOME/.config/autostart/caelestia-init.desktop\"\n",
-        "if [[ -f \"$marker\" && ( ! -d \"$staged_zen\" || -f \"$zen_marker\" ) ]]; then\n",
-        "  echo \"[$(date -Iseconds)] init complete; removing autostart\" >> \"$log\"\n",
-        "  rm -f \"$autostart_file\"\n",
-        "fi\n",
-    );
-    fs::write(&script_path, script_contents).context("write caelestia init script")?;
+    let sources = [
+        "/mnt/usr/share/caelestia/caelestia-init.sh",
+        "/usr/share/caelestia/caelestia-init.sh",
+        "/run/archiso/bootmnt/airootfs/usr/share/caelestia/caelestia-init.sh",
+        "/run/archiso/bootmnt/usr/share/caelestia/caelestia-init.sh",
+    ];
+    let mut found = None;
+    for source in &sources {
+        if Path::new(source).exists() {
+            found = Some(*source);
+            break;
+        }
+    }
+    let script_source = if let Some(source) = found {
+        source
+    } else {
+        send_event(
+            tx,
+            InstallerEvent::Log(
+                "Caelestia init script not found; skipping init setup.".to_string(),
+            ),
+        );
+        return Ok(());
+    };
+    fs::copy(script_source, &script_path).context("copy caelestia init script")?;
     run_command(tx, "chmod", &["+x", &script_path], None)?;
 
     let hypr_include_contents = format!("# Nebula Caelestia init\n{}\n", hypr_exec_line);

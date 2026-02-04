@@ -38,10 +38,20 @@ impl AppSelectionFlags {
                 *flag = true;
             }
         }
+        let mut editors = vec![false; editor_choices().len()];
+        if let Some((idx, _)) = editor_choices()
+            .iter()
+            .enumerate()
+            .find(|(_, choice)| choice.label == "Visual Studio Code")
+        {
+            if let Some(flag) = editors.get_mut(idx) {
+                *flag = true;
+            }
+        }
         Self {
             compositors,
             browsers,
-            editors: vec![false; editor_choices().len()],
+            editors,
             terminals: vec![false; terminal_choices().len()],
         }
     }
@@ -56,6 +66,15 @@ impl AppSelectionFlags {
             .find(|(_, choice)| choice.label == "Zen Browser")
         {
             if let Some(flag) = self.browsers.get_mut(idx) {
+                *flag = true;
+            }
+        }
+        if let Some((idx, _)) = editor_choices()
+            .iter()
+            .enumerate()
+            .find(|(_, choice)| choice.label == "Visual Studio Code")
+        {
+            if let Some(flag) = self.editors.get_mut(idx) {
                 *flag = true;
             }
         }

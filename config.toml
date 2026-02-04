@@ -74,6 +74,8 @@ required = [
   "make",
   "cmake",
   "tree",
+
+  # Caelestia Shell
   "caelestia-shell",
   "caelestia-cli",
   "caelestia-meta",
@@ -171,7 +173,7 @@ yay = ["cursor-bin"]
 
 [[selections.editors]]
 label = "Visual Studio Code"
-yay = ["visual-studio-code-bin"]
+pacman = ["visual-studio-code-bin"]
 
 [[selections.editors]]
 label = "VSCodium"
