@@ -42,10 +42,11 @@ use crate::network::{
     has_wifi_device, is_network_ready, is_wifi_connected, list_wifi_networks, wifi_device_name,
     wifi_device_state,
 };
-use crate::packages::{hyprland_packages, required_packages};
+use crate::packages::required_packages;
 use crate::selection::{
-    browser_choices, compositor_labels, editor_choices, labels_for_flags, labels_for_selection,
-    selection_from_app_flags, terminal_choices, AppSelectionFlags, PackageSelection,
+    browser_choices, compositor_choices, compositor_labels, editor_choices, labels_for_flags,
+    labels_for_selection, selection_from_app_flags, selection_from_flags_for, terminal_choices,
+    AppSelectionFlags, PackageSelection,
 };
 use crate::timezones::{
     detect_timezone_geoip, detect_timezone_local, find_timezone_index, load_timezones,
@@ -214,7 +215,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
     let mut base_packages = required_packages();
-    base_packages.extend(hyprland_packages());
 
     // Set up the terminal for TUI interaction
     enable_raw_mode().context("enable raw mode")?;
@@ -1316,7 +1316,7 @@ fn main() -> Result<()> {
                     continue;
                 };
                 let compositor_labels =
-                    labels_for_flags(&app_flags.compositors, compositor_labels());
+                    labels_for_flags(&app_flags.compositors, &compositor_labels());
                 let browser_labels = labels_for_selection(&app_selection, browser_choices());
                 let editor_labels = labels_for_selection(&app_selection, editor_choices());
                 let terminal_labels = labels_for_selection(&app_selection, terminal_choices());
@@ -1426,6 +1426,35 @@ fn main() -> Result<()> {
         }
     }
 
+    // Compute compositor packages and selection
+    let mut compositor_flags = vec![false; compositor_choices().len()];
+    if let Some((idx, _)) = app_flags
+        .compositors
+        .iter()
+        .enumerate()
+        .find(|(_, flag)| **flag)
+    {
+        if let Some(flag) = compositor_flags.get_mut(idx) {
+            *flag = true;
+        }
+    }
+    let compositor_selection =
+        selection_from_flags_for(&compositor_flags, compositor_choices());
+    base_packages.extend(compositor_selection.pacman);
+    let selected_browsers = labels_for_selection(&app_selection, browser_choices());
+    let selected_editors = labels_for_selection(&app_selection, editor_choices());
+    let mut extra_aur_packages = app_selection.yay;
+    extra_aur_packages.extend(compositor_selection.yay);
+    let compositor_label = app_flags
+        .compositors
+        .iter()
+        .enumerate()
+        .find(|(_, flag)| **flag)
+        .and_then(|(idx, _)| compositor_choices().get(idx))
+        .map(|choice| choice.label.clone())
+        .or_else(|| compositor_choices().first().map(|choice| choice.label.clone()))
+        .unwrap_or_else(|| "Hyprland (Caelestia)".to_string());
+
     // Create the installation configuration
     let config = InstallConfig {
         disk: selected_disk.expect("disk selection"),
@@ -1441,12 +1470,13 @@ fn main() -> Result<()> {
         kernel_package,
         kernel_headers,
         base_packages,
-        selected_browsers: labels_for_selection(&app_selection, browser_choices()),
-        selected_editors: labels_for_selection(&app_selection, editor_choices()),
+        selected_browsers,
+        selected_editors,
         extra_pacman_packages: app_selection.pacman,
-        extra_aur_packages: app_selection.yay,
+        extra_aur_packages,
+        compositor_label,
         offline_only,
-        hyprland_selected: true,
+        hyprland_selected: app_flags.compositors.iter().any(|flag| *flag),
     };
 
     let (tx, rx) = crossbeam_channel::unbounded();

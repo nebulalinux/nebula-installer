@@ -14,7 +14,7 @@ use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Padding, Parag
 use ratatui::{Frame, Terminal};
 
 use crate::selection::{
-    browser_choices, compositor_labels, editor_choices, terminal_choices, AppSelectionFlags,
+    browser_choices, compositor_choices, editor_choices, terminal_choices, AppSelectionFlags,
 };
 use crate::ui::colors::PURE_WHITE;
 
@@ -160,27 +160,28 @@ fn draw_application_selector(
         height: columns_area.height,
     };
 
+    let compositor_height = (compositor_choices().len() as u16) + 4;
     let left_layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(4), Constraint::Min(4)])
+        .constraints([Constraint::Length(compositor_height), Constraint::Min(4)])
         .split(left_area);
     let compositor_area = left_layout[0];
     let browser_area = left_layout[1];
 
     // --- Render Compositor List ---
-    let compositor_items: Vec<ListItem> = compositor_labels()
+    let compositor_items: Vec<ListItem> = compositor_choices()
         .iter()
         .enumerate()
-        .map(|(idx, label)| {
+        .map(|(idx, choice)| {
             let is_selected = flags.compositors.get(idx).copied().unwrap_or(false);
             if is_selected {
                 ListItem::new(Line::from(vec![
                     Span::styled("[󰸞]", Style::default().fg(Color::LightGreen)), // Checkbox checked
                     Span::raw(" "),
-                    Span::styled(label.as_str(), Style::default().fg(Color::Blue)),
+                    Span::styled(choice.label.as_str(), Style::default().fg(Color::Blue)),
                 ]))
             } else {
-                ListItem::new(Line::from(format!("[ ] {}", label))) // Checkbox unchecked
+                ListItem::new(Line::from(format!("[ ] {}", choice.label))) // Checkbox unchecked
             }
         })
         .collect();
@@ -210,8 +211,9 @@ fn draw_application_selector(
                 .add_modifier(Modifier::BOLD),
         );
     let mut compositor_state = ListState::default();
-    if compositor_active && !compositor_labels().is_empty() {
-        compositor_state.select(Some(compositor_cursor.min(compositor_labels().len() - 1)));
+    let compositor_len = compositor_choices().len();
+    if compositor_active && compositor_len > 0 {
+        compositor_state.select(Some(compositor_cursor.min(compositor_len - 1)));
     }
     f.render_stateful_widget(compositor_list, compositor_area, &mut compositor_state);
 
@@ -413,7 +415,7 @@ pub fn run_application_selector(
     let mut flags = initial.clone();
     flags.enforce_defaults();
     // Ensure flag vectors are the correct length
-    normalize_flags(&mut flags.compositors, compositor_labels().len());
+    normalize_flags(&mut flags.compositors, compositor_choices().len());
     normalize_flags(&mut flags.browsers, browser_choices().len());
     normalize_flags(&mut flags.editors, editor_choices().len());
     normalize_flags(&mut flags.terminals, terminal_choices().len());
@@ -474,7 +476,7 @@ pub fn run_application_selector(
                         AppSelectionFocus::Browsers => {
                             if browser_cursor > 0 {
                                 browser_cursor -= 1;
-                            } else if !compositor_labels().is_empty() {
+                            } else if !compositor_choices().is_empty() {
                                 focus = AppSelectionFocus::Compositors;
                             }
                         }
@@ -491,7 +493,7 @@ pub fn run_application_selector(
                     },
                     KeyCode::Down => match focus {
                         AppSelectionFocus::Compositors => {
-                            if compositor_cursor + 1 < compositor_labels().len() {
+                            if compositor_cursor + 1 < compositor_choices().len() {
                                 compositor_cursor += 1;
                             } else if !browser_choices().is_empty() {
                                 focus = AppSelectionFocus::Browsers;
@@ -516,8 +518,9 @@ pub fn run_application_selector(
                     // --- Selection and Actions ---
                     KeyCode::Char(' ') => match focus {
                         AppSelectionFocus::Compositors => {
-                            if let Some(flag) = flags.compositors.get_mut(compositor_cursor) {
-                                *flag = true;
+                            if compositor_cursor < flags.compositors.len() {
+                                flags.compositors.iter_mut().for_each(|flag| *flag = false);
+                                flags.compositors[compositor_cursor] = true;
                             }
                         }
                         AppSelectionFocus::Browsers => {

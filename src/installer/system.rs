@@ -47,6 +47,46 @@ pub(crate) fn get_uuid(
     Ok(output.trim().to_string())
 }
 
+// Installs Hyprland user config from nebula-hypr
+pub(crate) fn install_nebula_hypr(
+    tx: &crossbeam_channel::Sender<InstallerEvent>,
+    username: &str,
+) -> Result<()> {
+    let sources = [
+        "/mnt/usr/share/nebula-hypr/run.sh",
+        "/usr/share/nebula-hypr/run.sh",
+        "/run/archiso/bootmnt/airootfs/usr/share/nebula-hypr/run.sh",
+        "/run/archiso/bootmnt/usr/share/nebula-hypr/run.sh",
+    ];
+    let mut found = None;
+    for source in &sources {
+        if Path::new(source).exists() {
+            found = Some(*source);
+            break;
+        }
+    }
+
+    let script = if let Some(source) = found {
+        source
+    } else {
+        send_event(
+            tx,
+            InstallerEvent::Log(
+                "nebula-hypr installer script not found; skipping Hyprland config install."
+                    .to_string(),
+            ),
+        );
+        return Ok(());
+    };
+
+    send_event(
+        tx,
+        InstallerEvent::Log(format!("Installing Nebula Hyprland defaults from {}...", script)),
+    );
+    run_command(tx, "bash", &[script, "/mnt", username], None)?;
+    Ok(())
+}
+
 // Installs Hyprland user config from caelestia-meta
 pub(crate) fn install_caelestia(
     tx: &crossbeam_channel::Sender<InstallerEvent>,

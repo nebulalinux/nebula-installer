@@ -24,7 +24,7 @@ pub struct AppSelectionFlags {
 impl AppSelectionFlags {
     // Creates a new set of application selection flags with default values
     pub fn new() -> Self {
-        let mut compositors = vec![false; compositor_labels().len()];
+        let mut compositors = vec![false; compositor_choices().len()];
         if let Some(flag) = compositors.first_mut() {
             *flag = true;
         }
@@ -57,26 +57,8 @@ impl AppSelectionFlags {
     }
 
     pub fn enforce_defaults(&mut self) {
-        if let Some(flag) = self.compositors.first_mut() {
-            *flag = true;
-        }
-        if let Some((idx, _)) = browser_choices()
-            .iter()
-            .enumerate()
-            .find(|(_, choice)| choice.label == "Zen Browser")
-        {
-            if let Some(flag) = self.browsers.get_mut(idx) {
-                *flag = true;
-            }
-        }
-        if let Some((idx, _)) = editor_choices()
-            .iter()
-            .enumerate()
-            .find(|(_, choice)| choice.label == "Visual Studio Code")
-        {
-            if let Some(flag) = self.editors.get_mut(idx) {
-                *flag = true;
-            }
+        if !self.compositors.is_empty() && !self.compositors.iter().any(|flag| *flag) {
+            self.compositors[0] = true;
         }
     }
 }
@@ -88,8 +70,15 @@ impl Default for AppSelectionFlags {
     }
 }
 
-pub fn compositor_labels() -> &'static [String] {
+pub fn compositor_choices() -> &'static [InstallChoice] {
     &config().selections.compositors
+}
+
+pub fn compositor_labels() -> Vec<String> {
+    compositor_choices()
+        .iter()
+        .map(|choice| choice.label.clone())
+        .collect()
 }
 
 pub fn browser_choices() -> &'static [InstallChoice] {

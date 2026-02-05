@@ -11,12 +11,11 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct PackagesConfig {
     pub required: Vec<String>,
-    pub hyprland: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SelectionsConfig {
-    pub compositors: Vec<String>,
+    pub compositors: Vec<ChoiceConfig>,
     pub browsers: Vec<ChoiceConfig>,
     pub editors: Vec<ChoiceConfig>,
     pub terminals: Vec<ChoiceConfig>,
@@ -46,9 +45,6 @@ fn validate_config(cfg: &Config) -> Result<(), String> {
     if cfg.packages.required.is_empty() {
         return Err("packages.required must not be empty".to_string());
     }
-    if cfg.packages.hyprland.is_empty() {
-        return Err("packages.hyprland must not be empty".to_string());
-    }
     if cfg.selections.compositors.is_empty() {
         return Err("selections.compositors must not be empty".to_string());
     }
@@ -62,6 +58,7 @@ fn validate_config(cfg: &Config) -> Result<(), String> {
         return Err("selections.terminals must not be empty".to_string());
     }
 
+    validate_choices("selections.compositors", &cfg.selections.compositors)?;
     validate_choices("selections.browsers", &cfg.selections.browsers)?;
     validate_choices("selections.editors", &cfg.selections.editors)?;
     validate_choices("selections.terminals", &cfg.selections.terminals)?;
