@@ -658,6 +658,26 @@ pub fn run_installer(
     // Step 10: Finalize the installation
     run_step(&tx, 10, || {
         run_chroot(&tx, &["systemctl", "enable", "NetworkManager"], None)?;
+        // Enable Bluetooth only when hardware is present
+        if run_chroot(
+            &tx,
+            &[
+                "bash",
+                "-c",
+                "if ls /sys/class/bluetooth/hci* >/dev/null 2>&1; then systemctl enable bluetooth; fi",
+            ],
+            None,
+        )
+        .is_err()
+        {
+            send_event(
+                &tx,
+                InstallerEvent::Log(
+                    "Failed to detect Bluetooth hardware; skipping bluetooth.service enable."
+                        .to_string(),
+                ),
+            );
+        }
         if config.base_packages.iter().any(|pkg| pkg == "sddm") {
             run_chroot(&tx, &["systemctl", "enable", "sddm"], None)?;
         } else {

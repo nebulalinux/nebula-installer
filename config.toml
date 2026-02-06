@@ -54,6 +54,8 @@ required = [
   "xdg-utils",
   "xdg-user-dirs",
   "polkit-gnome",
+  "gnome-keyring",
+  "gammastep",
   "wl-clipboard",
   "wayland",
   "wayland-protocols",
