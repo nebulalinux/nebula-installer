@@ -26,8 +26,8 @@ use pacman::{
 use system::{
     close_cryptroot_with_retries, configure_hypr_monitors, configure_zram,
     copy_installer_log, detect_microcode_package, get_uuid, install_caelestia,
-    install_nebula_hypr, schedule_caelestia_init, schedule_nebula_theme, write_file,
-    write_os_release,
+    install_nebula_hypr, schedule_caelestia_init, schedule_nebula_init, schedule_nebula_theme,
+    write_file, write_os_release,
 };
 use themes::{
     ensure_grub_cmdline_params, install_grub_theme, install_sddm_theme,
@@ -694,6 +694,7 @@ pub fn run_installer(
                     install_nebula_hypr(&tx, &config.username)?;
                     configure_hypr_monitors(&tx, &config.username)?;
                     schedule_nebula_theme(&tx, &config.username)?;
+                    schedule_nebula_init(&tx, &config.username)?;
                 }
                 _ => {
                     install_caelestia(

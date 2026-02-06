@@ -325,6 +325,99 @@ pub(crate) fn schedule_nebula_theme(
     Ok(())
 }
 
+// Schedules a one-time Nebula init on first Hyprland login
+pub(crate) fn schedule_nebula_init(
+    tx: &crossbeam_channel::Sender<InstallerEvent>,
+    username: &str,
+) -> Result<()> {
+    let home_dir = format!("/mnt/home/{}", username);
+    let autostart_dir = format!("{}/.config/autostart", home_dir);
+    let autostart_file = format!("{}/nebula-init.desktop", autostart_dir);
+    let script_dir = format!("{}/.local/share/nebula/post-install", home_dir);
+    let script_path = format!("{}/run-nebula-init.sh", script_dir);
+    let hypr_dir = format!("{}/.local/share/nebula/hypr", home_dir);
+    let hypr_include = format!("{}/nebula-init.conf", hypr_dir);
+    let hypr_include_home = "~/.local/share/nebula/hypr/nebula-init.conf";
+    let hypr_main = format!("{}/.config/hypr/hyprland.conf", home_dir);
+    let hypr_source_line = format!("source = {}", hypr_include_home);
+    let hypr_exec_line = "exec-once = /bin/bash -lc \"$HOME/.local/share/nebula/post-install/run-nebula-init.sh\"";
+
+    fs::create_dir_all(&autostart_dir).context("create autostart dir")?;
+    fs::create_dir_all(&script_dir).context("create nebula init script dir")?;
+    fs::create_dir_all(&hypr_dir).context("create hypr init dir")?;
+
+    let autostart_contents = concat!(
+        "[Desktop Entry]\n",
+        "Type=Application\n",
+        "Name=Nebula Init\n",
+        "Comment=Apply Nebula post-install tasks on first Hyprland login\n",
+        "Exec=/bin/bash -lc \"$HOME/.local/share/nebula/post-install/run-nebula-init.sh\"\n",
+        "Terminal=false\n",
+        "OnlyShowIn=Hyprland;\n",
+        "X-GNOME-Autostart-enabled=true\n",
+    );
+    fs::write(&autostart_file, autostart_contents).context("write nebula init autostart")?;
+
+    let sources = [
+        "/mnt/usr/share/nebula-hypr/nebula-init.sh",
+        "/usr/share/nebula-hypr/nebula-init.sh",
+        "/run/archiso/bootmnt/airootfs/usr/share/nebula-hypr/nebula-init.sh",
+        "/run/archiso/bootmnt/usr/share/nebula-hypr/nebula-init.sh",
+    ];
+    let mut found = None;
+    for source in &sources {
+        if Path::new(source).exists() {
+            found = Some(*source);
+            break;
+        }
+    }
+    let script_source = if let Some(source) = found {
+        source
+    } else {
+        send_event(
+            tx,
+            InstallerEvent::Log("Nebula init script not found; skipping init setup.".to_string()),
+        );
+        return Ok(());
+    };
+    fs::copy(script_source, &script_path).context("copy nebula init script")?;
+    run_command(tx, "chmod", &["+x", &script_path], None)?;
+
+    let hypr_include_contents = format!("# Nebula init\n{}\n", hypr_exec_line);
+    fs::write(&hypr_include, hypr_include_contents).context("write hypr init include")?;
+    if Path::new(&hypr_main).exists() {
+        let existing = fs::read_to_string(&hypr_main).unwrap_or_default();
+        if !existing.lines().any(|line| line.trim() == hypr_source_line) {
+            let mut updated = existing;
+            if !updated.ends_with('\n') {
+                updated.push('\n');
+            }
+            updated.push_str("# Nebula init\n");
+            updated.push_str(&hypr_source_line);
+            updated.push('\n');
+            fs::write(&hypr_main, updated).context("append hypr init include")?;
+        }
+    }
+
+    let chown_user = format!("{}:{}", username, username);
+    let chown_autostart = format!("/home/{}/.config/autostart", username);
+    let chown_script_dir = format!("/home/{}/.local/share/nebula/post-install", username);
+    let chown_hypr_include = format!("/home/{}/.local/share/nebula/hypr", username);
+    run_chroot(
+        tx,
+        &[
+            "chown",
+            "-R",
+            &chown_user,
+            &chown_autostart,
+            &chown_script_dir,
+            &chown_hypr_include,
+        ],
+        None,
+    )?;
+    Ok(())
+}
+
 // Schedules a one-time Caelestia init on first Hyprland login
 pub(crate) fn schedule_caelestia_init(
     tx: &crossbeam_channel::Sender<InstallerEvent>,
